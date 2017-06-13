@@ -16,13 +16,15 @@
 #				for every entry.
 #
 #			NOTE:	
-#				Any ROUTE you may add in the ROUTES table will not include the domain you are currently using.
-#				E.g. your user is under the domain 'test.local', therefore to add a valid ROUTE in the ROUTES
-#				table you need to do it like so:
-#			
-#				("example.test.local.","192.168.1.1")
-#				If you did an nslookup of 'example' it would show in the DNS server as 'example.test.local.'
-#				because that's the domain you are using.
+#				If you did an nslookup of 'example' and you were under the domain 'test.local' it would 
+#				show in the DNS server as 'example.test.local.' because that's the domain you are using. 
+#				I have adjusted the server for this so that it only checks the start of a string, ignoring
+#				any local domains. However, this can also mean that you can return a different IP for the 
+#				same query under different domains.
+#				E.g.
+#				
+#				test.local. 		-> 	127.0.0.1
+#				test.company.local. -> 	10.0.0.1
 #
 
 import socket, sys, time
@@ -30,9 +32,9 @@ import socket, sys, time
 ### CONFIGURATION ###
 
 ROUTES = [
-	("local.","127.0.0.1")
+	("home.","0.0.0.0")
 ]
-IP = "" 				# Server IP - the IP to listen on (set to "" for any IP connected to the machine running DNS)
+IP = "" 				# Server IP - the IP to listen on (empty string means all)
 PORT = 53 				# Server Port - the port to listen on
 IP_BLACK = "127.0.0.1" 	# Blacklist IP - returned if no domain name match in ROUTES
 
@@ -57,7 +59,7 @@ class dns_query:
 		packet = ""
 		if not self.domain == "":
 			for d, a in ROUTES:
-				if self.domain == d:
+				if self.domain.startswith(d):
 					self.ip = a
 		
 			if self.ip == "":
@@ -79,7 +81,6 @@ if __name__ == "__main__":
 	udp_server = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 	udp_server.bind((IP,PORT))
 	sys.stdout.write("Done.\n")
-	time.sleep(0.5)
 	print("[INFO] Listening on port %s" % PORT)
 	try:
 		while 1:
